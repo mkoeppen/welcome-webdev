@@ -4,7 +4,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Tägliche Übersicht: Web-News und neue Baseline-Features (CSS/HTML/JS)",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkoeppen/welcome-webdev.git"
+  },
   "publisher": "mkoe",
   "type": "module",
   "main": "./dist/extension.cjs",
