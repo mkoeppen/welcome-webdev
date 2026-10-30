@@ -1,0 +1,86 @@
+{
+  "name": "webdev-welcome",
+  "displayName": "Web Dev Welcome",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tägliche Übersicht: Web-News und neue Baseline-Features (CSS/HTML/JS)",
+  "license": "UNLICENSED",
+  "publisher": "mkoe",
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp pack && vp build",
+    "test": "vp test run",
+    "check": "vp check",
+    "typecheck": "vue-tsc --noEmit",
+    "package": "vp run build && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/vscode": "~1.90.0",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vscode/vsce": "^4.1.0",
+    "sass-embedded": "^1.107.0",
+    "typescript": "^6.0.3",
+    "vite-plus": "^1.4.0",
+    "vue": "^3.5.44",
+    "vue-tsc": "^3.3.13"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "webdevWelcome.open",
+        "title": "Web Dev Welcome öffnen",
+        "icon": "$(globe)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "webdevWelcome",
+          "title": "Web Dev Welcome",
+          "icon": "media/globe.svg"
+        }
+      ]
+    },
+    "views": {
+      "webdevWelcome": [
+        {
+          "type": "webview",
+          "id": "webdevWelcome.view",
+          "name": "Web Dev Welcome"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "webdevWelcome.open",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "webdevWelcome.open",
+          "when": "view == webdevWelcome.view",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0"
+    }
+  }
+}

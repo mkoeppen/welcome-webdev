@@ -1,0 +1,78 @@
+:root {
+  --fg: var(--vscode-foreground);
+  --bg: var(--vscode-editor-background);
+  --muted: color-mix(in srgb, var(--fg) 72%, var(--bg));
+  --line: color-mix(in srgb, var(--fg) 14%, var(--bg));
+  --panel: color-mix(in srgb, var(--fg) 5%, var(--bg));
+  --link: var(--vscode-textLink-foreground);
+  --fav: #d9a400;
+  --CSS: #3b9eff;
+  --HTML: #f0883e;
+  --JS: #e3b341;
+  --Sonstige: #8b949e;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.55 var(--vscode-font-family);
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+details {
+  margin-top: 0.8rem;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--link);
+}
+
+.loading,
+.empty,
+.none {
+  color: var(--muted);
+}
+
+.loading {
+  padding: 2rem;
+}
+
+.none {
+  margin: 2rem 0;
+}
+
+footer {
+  margin-top: 2.5rem;
+  color: var(--muted);
+  font-size: 0.85em;
+}

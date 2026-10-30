@@ -1,0 +1,17 @@
+// Nur für `vp dev`: ersetzt die --vscode-* Variablen, die sonst VS Code liefert.
+:root {
+  --vscode-foreground: #1f2328;
+  --vscode-editor-background: #ffffff;
+  --vscode-textLink-foreground: #0b63c5;
+  --vscode-focusBorder: #0b63c5;
+  --vscode-font-family: system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vscode-foreground: #cccccc;
+    --vscode-editor-background: #1e1e1e;
+    --vscode-textLink-foreground: #3794ff;
+    --vscode-focusBorder: #3794ff;
+  }
+}

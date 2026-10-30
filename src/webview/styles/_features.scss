@@ -1,0 +1,124 @@
+table.ft {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ft {
+  th {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  td {
+    padding: 0.65rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+
+    &.a {
+      width: 1%;
+      padding-inline: 0.1rem;
+      white-space: nowrap;
+    }
+
+    &.n {
+      width: 58%;
+
+      strong {
+        font-weight: 400;
+        overflow-wrap: anywhere;
+      }
+
+      p {
+        margin: 0.15rem 0 0;
+        max-width: 70ch;
+        color: var(--muted);
+        font-size: 0.92em;
+      }
+    }
+
+    &.d {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    &.l {
+      white-space: nowrap;
+
+      a + a {
+        margin-left: 0.8rem;
+      }
+    }
+  }
+
+  tbody tr {
+    &:hover {
+      background: var(--panel);
+    }
+
+    &.unread .n strong {
+      font-weight: 700;
+    }
+
+    &.hidden {
+      opacity: 0.5;
+    }
+  }
+}
+
+.b {
+  --c: var(--Sonstige);
+  font-size: 0.72em;
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 99px;
+  color: color-mix(in srgb, var(--c) 45%, var(--fg));
+  background: color-mix(in srgb, var(--c) 16%, var(--bg));
+
+  &.CSS {
+    --c: var(--CSS);
+  }
+  &.HTML {
+    --c: var(--HTML);
+  }
+  &.JS {
+    --c: var(--JS);
+  }
+}
+
+// Schmaler Container: Tabelle wird zu Karten
+@container feat (max-width: 680px) {
+  .ft {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.15rem 0.6rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    td {
+      padding: 0;
+      border: 0;
+
+      &.a {
+        width: auto;
+        flex: none;
+      }
+
+      &.n {
+        width: auto;
+        flex: 1 1 55%;
+        min-width: 0;
+      }
+    }
+  }
+}
