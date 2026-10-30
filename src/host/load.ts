@@ -1,7 +1,8 @@
 import type { Cat, Features, Mdn, NewsItem } from '../shared/types';
 
-const FEATURES_URL = 'https://cdn.jsdelivr.net/npm/web-features/data.json';
-const BCD_URL = 'https://cdn.jsdelivr.net/npm/@mdn/browser-compat-data/data.json';
+// Major-Versionen gepinnt: ein Schemawechsel soll nicht stillschweigend die Anzeige leeren
+const FEATURES_URL = 'https://cdn.jsdelivr.net/npm/web-features@3/data.json';
+const BCD_URL = 'https://cdn.jsdelivr.net/npm/@mdn/browser-compat-data@8/data.json';
 const FEEDS: [string, string][] = [
   ['web.dev', 'https://web.dev/feed.xml'],
   ['Chrome', 'https://developer.chrome.com/static/blog/feed.xml'],
@@ -97,6 +98,7 @@ interface RawFeatures {
 }
 
 export function parseFeatures(data: RawFeatures): Features {
+  if (!data || typeof data.features !== 'object' || !data.features) throw new Error('web-features: unerwartetes Format');
   const all = Object.entries(data.features)
     .filter(([, f]) => f.kind === 'feature' && f.status)
     .map(([id, f]) => ({
@@ -137,13 +139,50 @@ async function loadMdn(raw: RawFeatures): Promise<Mdn> {
   return { at: Date.now(), map };
 }
 
+// Feed-Links sind fremde Eingaben und die Extension kann im Remote-/Container-Host laufen: nur öffentliche https-Ziele abrufen.
+// ponytail: nur Hostname-Prüfung (kein DNS-Check), bei Bedarf Namen vor dem Fetch auflösen und die IP prüfen
+const PRIVATE_HOST = /^(localhost|\[|0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|internal|localhost)$/i;
+export function isPublicHttps(url: string) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !PRIVATE_HOST.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// Redirects einzeln prüfen, statt sie fetch blind folgen zu lassen
+async function getPublic(url: string, ms: number) {
+  for (let hops = 0; hops < 4; hops++) {
+    if (!isPublicHttps(url)) throw new Error(`${url}: blockiert`);
+    const r = await fetch(url, { signal: AbortSignal.timeout(ms), redirect: 'manual' });
+    const next = r.status >= 300 && r.status < 400 && r.headers.get('location');
+    if (!next) return r;
+    url = new URL(next, url).href;
+  }
+  throw new Error(`${url}: zu viele Weiterleitungen`);
+}
+
+// Nur bis </head> (max. 200 kB) lesen, dann Verbindung abbrechen
+async function readHead(r: Response) {
+  const reader = r.body!.getReader();
+  const dec = new TextDecoder();
+  let html = '';
+  for (let c = await reader.read(); !c.done; c = await reader.read()) {
+    html += dec.decode(c.value, { stream: true });
+    if (html.length > 200000 || /<\/head>/i.test(html)) break;
+  }
+  reader.cancel().catch(() => {});
+  return html;
+}
+
 async function addOgImages(items: NewsItem[]) {
   await Promise.all(
     items
       .filter((i) => !i.image)
       .map(async (i) => {
         try {
-          const html = (await get(i.link, 8000).then((r) => r.text())).slice(0, 200000);
+          const html = await readHead(await getPublic(i.link, 8000));
           const meta = html.match(/<meta[^>]+og:image(?!:)[^>]*>/i);
           const src = meta && meta[0].match(/content=["']([^"']+)["']/i);
           const url = src && new URL(decode(src[1]!), i.link).href;

@@ -1,5 +1,22 @@
 import { describe, expect, test } from 'vite-plus/test';
-import { load, parseFeatures, parseFeed } from './load';
+import { isPublicHttps, load, parseFeatures, parseFeed } from './load';
+
+test('isPublicHttps: nur öffentliche https-Ziele', () => {
+  expect(isPublicHttps('https://web.dev/a')).toBe(true);
+  for (const u of [
+    'http://web.dev',
+    'https://localhost/x',
+    'https://127.0.0.1',
+    'https://10.0.0.5',
+    'https://192.168.1.1',
+    'https://172.20.0.1',
+    'https://[::1]/',
+    'https://host.internal',
+    'nope',
+  ])
+    expect(isPublicHttps(u), u).toBe(false);
+  expect(isPublicHttps('https://172.32.0.1')).toBe(true);
+});
 
 const RSS = `<rss><channel>
 <item><title>Eins &amp; zwei</title><link>https://example.com/a</link><pubDate>Mon, 26 Oct 2026 10:00:00 GMT</pubDate>
@@ -33,6 +50,11 @@ test('parseFeed: Release-Feed ohne Pre-Releases, mit Quelle im Titel, ohne Avata
   const items = parseFeed(RELEASES, 'Vue');
   expect(items.map((i) => i.title)).toEqual(['Vue v3.5.22']);
   expect(items[0]!.image).toBe('');
+});
+
+test('parseFeatures: unerwartetes Format wirft, damit "Baseline-Daten nicht erreichbar" erscheint', () => {
+  expect(() => parseFeatures({} as never)).toThrow('unerwartetes Format');
+  expect(() => parseFeatures(null as never)).toThrow('unerwartetes Format');
 });
 
 test('parseFeatures: Kategorien und Sortierung', () => {

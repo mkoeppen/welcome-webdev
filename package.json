@@ -21,7 +21,7 @@
     "package": "vp run build && vsce package --no-dependencies"
   },
   "devDependencies": {
-    "@types/node": "^26.6.6",
+    "@types/node": "^20.19.43",
     "@types/vscode": "~1.90.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vscode/vsce": "^4.1.0",
@@ -39,6 +39,16 @@
         "icon": "$(globe)"
       }
     ],
+    "configuration": {
+      "title": "Web Dev Welcome",
+      "properties": {
+        "webdevWelcome.openOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Öffnet die Übersicht beim ersten VS-Code-Start des Tages."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {

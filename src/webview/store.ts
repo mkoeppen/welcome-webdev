@@ -30,7 +30,10 @@ export function init() {
       data.value = e.data.payload;
       marks.value = e.data.payload.marks;
       loading.value = false;
-    } else if (e.data.type === 'marks') marks.value = e.data.marks;
+    } else if (e.data.type === 'marks') {
+      marks.value = e.data.marks;
+      if (data.value) data.value = { ...data.value, saved: e.data.saved };
+    }
   });
   vscode.postMessage({ type: 'ready' });
 }
@@ -82,7 +85,10 @@ export const hiddenCount = computed(() => {
   return keys.filter((k) => marks.value[k]?.hidden).length;
 });
 
+// Im Favoriten-Filter auch die Meldungen, die nicht mehr im Feed stehen
+export const newsList = computed(() => (view.fav ? [...(data.value?.news ?? []), ...(data.value?.saved ?? [])] : (data.value?.news ?? [])));
+
 export const hasVisible = computed(() => ({
-  news: (data.value?.news ?? []).some((n) => visible(newsKey(n.link))),
+  news: newsList.value.some((n) => visible(newsKey(n.link))),
   feat: featureRows.value[view.sub].some(({ x }) => visible(featKey(x.id), x.cat)),
 }));

@@ -22,6 +22,7 @@ export function devPayload(): Payload {
     at: '12:00',
     failed: ['Frontend Front'],
     marks: {},
+    saved: [],
     mdn: { 'anchor-positioning': 'https://developer.mozilla.org/docs/Web/CSS/anchor' },
     news: sources.concat(sources).map((source, i) => ({
       source,

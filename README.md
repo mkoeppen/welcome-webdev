@@ -63,7 +63,10 @@ Anschließend das Fenster neu laden (`Ctrl+Shift+P` → **Developer: Reload Wind
 - Die Extension braucht keinen Account und sendet keine Telemetrie.
 - Sie lädt von `cdn.jsdelivr.net` (web-features und Browser-Compat-Daten), von den News-Feeds und von den verlinkten Artikelseiten, um fehlende Vorschaubilder zu finden.
 - News werden 6 Stunden zwischengespeichert, die MDN-Links 7 Tage (die Compat-Daten sind ca. 20 MB groß). Der Refresh-Button umgeht den Cache. Ohne Netz bleibt der letzte Stand sichtbar.
-- Markierungen und Cache liegen lokal im VS-Code-Speicher der Extension (`globalState`).
+- Markierungen liegen im `globalState` der Extension, der Cache als JSON im globalen Speicherordner der Extension. Favorisierte News werden mit Titel und Link gemerkt und bleiben über „★ Nur Favoriten“ lesbar, auch wenn sie aus dem Feed gefallen sind.
+- Vorschaubilder werden nur von öffentlichen `https`-Seiten gesucht (keine lokalen oder privaten Adressen).
+
+Einstellung: `webdevWelcome.openOnStartup` (Standard: an) öffnet die Übersicht beim ersten VS-Code-Start des Tages.
 
 ## Entwicklung
 

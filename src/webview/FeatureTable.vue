@@ -35,7 +35,7 @@ const read = (f: Feature) => mark([featKey(f.id)], { read: 1 });
         <td>
           <span class="b" :class="f.cat">{{ f.cat }}</span>
         </td>
-        <td class="d">{{ fdate(f.low) }}</td>
+        <td class="d">{{ fdate(f.level === 'high' ? f.high : f.low) }}</td>
         <td class="l">
           <a :href="href(f, mdn)" @click="read(f)">{{ mdn[f.id] ? 'MDN' : 'MDN-Suche' }}</a>
           <a :href="`https://webstatus.dev/features/${f.id}`" @click="read(f)">Status</a>

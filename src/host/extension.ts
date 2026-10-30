@@ -1,23 +1,46 @@
 import { readFileSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import * as vscode from 'vscode';
-import { applyMarks } from '../shared/marks';
-import type { Mark, Marks, Mdn, NewsItem, Features, Payload, ToHost, ToWebview } from '../shared/types';
+import { applyMarks, pruneMarks, pruneSaved, saveFavs } from '../shared/marks';
+import type { Saved } from '../shared/marks';
+import type { Mark, Marks, Mdn, NewsItem, Payload, ToHost, ToWebview } from '../shared/types';
 import { countUnread } from '../shared/unread';
+import { coalesce } from './coalesce';
 import { load } from './load';
+import { due, merge, oldest } from './merge';
+import type { Cache } from './merge';
 import { split } from './split';
-
-const CACHE_MS = 6 * 3600e3;
-
-interface Cache {
-  at: number;
-  data: { features: Features | null; news: NewsItem[]; failed: string[] };
-}
 
 export function activate(ctx: vscode.ExtensionContext) {
   let panel: vscode.WebviewPanel | undefined;
   let marks: Marks = ctx.globalState.get('marks') || {};
+  let saved: Saved = ctx.globalState.get('saved') || {};
   const views = new Set<vscode.Webview>();
   const root = vscode.Uri.joinPath(ctx.extensionUri, 'dist', 'webview');
+
+  // Große Caches liegen als Dateien im globalStorage, damit sie nicht mit dem globalState bei jedem VS-Code-Start geladen werden
+  const dir = ctx.globalStorageUri.fsPath;
+  const readJson = <T>(name: string) =>
+    readFile(join(dir, name), 'utf8').then(
+      (t) => JSON.parse(t) as T,
+      () => undefined,
+    );
+  const writeJson = (name: string, v: unknown) =>
+    mkdir(dir, { recursive: true })
+      .then(() => writeFile(join(dir, name), JSON.stringify(v)))
+      .catch(() => {});
+  // Altlasten aus Version 0.1.0
+  ctx.globalState.update('cache2', undefined);
+  ctx.globalState.update('mdn', undefined);
+
+  // Cache einmal von der Platte lesen (asynchron, beim ersten build abgewartet), danach nur im Speicher halten
+  let cache: Cache | undefined;
+  let mdn: Mdn | undefined;
+  const disk = Promise.all([readJson<Cache>('cache.json'), readJson<Mdn>('mdn.json')]).then(([c, m]) => {
+    cache = c;
+    mdn = m;
+  });
 
   let sidebar: vscode.WebviewView | undefined;
   let last: Payload | undefined;
@@ -40,40 +63,44 @@ export function activate(ctx: vscode.ExtensionContext) {
       .replace('<head>', `<head><meta http-equiv="Content-Security-Policy" content="${csp}">`);
   }
 
+  // Favorisierte News, die nicht mehr im Feed stehen, neueste zuerst
+  const savedItems = (news: NewsItem[]) =>
+    Object.values(saved)
+      .filter((s) => !news.some((n) => n.link === s.link))
+      .sort((a, b) => b.date - a.date);
+
   async function build(force = false): Promise<Payload> {
-    let cached = ctx.globalState.get<Cache>('cache2');
-    let mdn = ctx.globalState.get<Mdn>('mdn');
-    if (force || !cached || Date.now() - cached.at > CACHE_MS) {
+    await disk;
+    if (force || !cache || due(cache)) {
       const data = await load(mdn);
-      // Komplett offline: den alten Stand behalten statt ihn durch eine leere Liste zu ersetzen
-      if (!cached || data.features || data.news.length) {
-        cached = { at: Date.now(), data: { features: data.features, news: data.news, failed: data.failed } };
-        if (data.mdn) ctx.globalState.update('mdn', (mdn = data.mdn));
-        if (data.features) ctx.globalState.update('cache2', cached);
-        if (data.news.length) {
-          // Markierungen für aus dem Feed gefallene News verwerfen
-          const keep = new Set(data.news.map((n) => 'n:' + n.link));
-          marks = Object.fromEntries(Object.entries(marks).filter(([k]) => !k.startsWith('n:') || keep.has(k)));
-          ctx.globalState.update('marks', marks);
-        }
+      const m = merge(cache, data);
+      cache = m.cache;
+      if (data.mdn && data.mdn !== mdn) writeJson('mdn.json', (mdn = data.mdn));
+      if (m.persist) writeJson('cache.json', cache);
+      // Markierungen aufräumen nur bei vollständigem Laden: ein ausgefallener Feed soll keine Gelesen-Stände verlieren
+      if (data.news.length && !data.failed.length) {
+        marks = pruneMarks(marks, new Set(data.news.map((n) => 'n:' + n.link)));
+        ctx.globalState.update('marks', marks);
       }
     }
-    const { features, news, failed } = cached.data;
+    const { features, news, failed } = cache.data;
+    // Favoriten aus dem aktuellen Feed festhalten, Schnappschüsse ohne Stern verwerfen
+    saved = pruneSaved(saveFavs(saved, news, Object.keys(marks)), marks);
+    ctx.globalState.update('saved', saved);
     last = {
       news,
       features: features && split(features),
       mdn: mdn?.map ?? {},
-      at: new Date(cached.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      at: new Date(oldest(cache)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
       failed,
       marks,
+      saved: savedItems(news),
     };
     refresh();
     return last;
   }
 
-  // Panel und Sidebar fragen gleichzeitig an: ein Ladevorgang für beide
-  let inflight: Promise<Payload> | undefined;
-  const payload = (force = false) => (inflight ??= build(force).finally(() => (inflight = undefined)));
+  const payload = coalesce(build);
 
   const send = (webview: vscode.Webview, m: ToWebview) => webview.postMessage(m);
 
@@ -83,8 +110,9 @@ export function activate(ctx: vscode.ExtensionContext) {
     webview.onDidReceiveMessage(async (m: ToHost) => {
       if (m.type === 'ready') return send(webview, { type: 'data', payload: await payload() });
       if (m.type === 'refresh') {
-        const p = await payload(true);
-        for (const v of views) send(v, { type: 'data', payload: p });
+        // bei Fehler den letzten Stand senden, damit die Webview nicht im Lade-Zustand hängen bleibt
+        const p = await payload(true).catch(() => last);
+        if (p) for (const v of views) send(v, { type: 'data', payload: p });
         return;
       }
       if (m.type !== 'mark' || !Array.isArray(m.keys) || !m.patch) return;
@@ -93,8 +121,12 @@ export function activate(ctx: vscode.ExtensionContext) {
       for (const p of ['read', 'fav', 'hidden'] as const) if (p in m.patch) patch[p] = m.patch[p] ? 1 : 0;
       marks = applyMarks(marks, keys, patch);
       ctx.globalState.update('marks', marks);
+      if (patch.fav) {
+        saved = saveFavs(saved, last?.news ?? [], keys);
+        ctx.globalState.update('saved', saved);
+      }
       refresh();
-      for (const v of views) if (v !== webview) send(v, { type: 'marks', marks });
+      for (const v of views) if (v !== webview) send(v, { type: 'marks', marks, saved: savedItems(last?.news ?? []) });
     });
   }
 
@@ -136,7 +168,7 @@ export function activate(ctx: vscode.ExtensionContext) {
   );
 
   const today = new Date().toISOString().slice(0, 10);
-  if (ctx.globalState.get('lastShown') !== today) {
+  if (vscode.workspace.getConfiguration('webdevWelcome').get('openOnStartup', true) && ctx.globalState.get('lastShown') !== today) {
     ctx.globalState.update('lastShown', today);
     open();
   }

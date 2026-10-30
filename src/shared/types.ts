@@ -52,7 +52,9 @@ export interface Payload {
   at: string;
   failed: string[];
   marks: Marks;
+  // favorisierte News, die nicht mehr im Feed stehen
+  saved: NewsItem[];
 }
 
 export type ToHost = { type: 'ready' } | { type: 'refresh' } | { type: 'mark'; keys: string[]; patch: Mark };
-export type ToWebview = { type: 'data'; payload: Payload } | { type: 'marks'; marks: Marks };
+export type ToWebview = { type: 'data'; payload: Payload } | { type: 'marks'; marks: Marks; saved: NewsItem[] };

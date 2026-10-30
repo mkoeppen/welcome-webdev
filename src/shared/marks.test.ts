@@ -1,5 +1,10 @@
 import { expect, test } from 'vite-plus/test';
-import { applyMarks } from './marks';
+import { applyMarks, pruneMarks, pruneSaved, saveFavs } from './marks';
+
+test('pruneMarks: verwirft alte News-Markierungen, behält Favoriten und Features', () => {
+  const m = { 'n:a': { read: 1 as const }, 'n:b': { fav: 1 as const }, 'n:c': { read: 1 as const }, 'f:x': { read: 1 as const } };
+  expect(Object.keys(pruneMarks(m, new Set(['n:c']))).sort()).toEqual(['f:x', 'n:b', 'n:c']);
+});
 
 test('setzt und kombiniert Markierungen', () => {
   let m = applyMarks({}, ['f:a', 'n:b'], { read: 1 });
@@ -21,4 +26,16 @@ test('mutiert die Eingabe nicht', () => {
   const m = { x: { fav: 1 as const } };
   applyMarks(m, ['x'], { fav: 0 });
   expect(m).toEqual({ x: { fav: 1 } });
+});
+
+const item = (link: string) => ({ source: 's', title: link, link, date: 1, desc: '', image: '' });
+
+test('saveFavs: merkt nur Meldungen mit passendem Key, behält bestehende', () => {
+  const saved = saveFavs({ old: item('old') }, [item('a'), item('b')], ['n:b', 'f:x']);
+  expect(Object.keys(saved).sort()).toEqual(['b', 'old']);
+});
+
+test('pruneSaved: behält nur Schnappschüsse mit Favoriten-Markierung', () => {
+  const saved = { a: item('a'), b: item('b') };
+  expect(Object.keys(pruneSaved(saved, { 'n:a': { fav: 1 }, 'n:b': { read: 1 } }))).toEqual(['a']);
 });

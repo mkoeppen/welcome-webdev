@@ -19,6 +19,7 @@ export default defineConfig({
     entry: { extension: 'src/host/extension.ts' },
     format: 'cjs',
     platform: 'node',
+    target: 'node20', // VS Code 1.90 bringt Node 20 mit
     outDir: 'dist',
     clean: false,
     deps: { neverBundle: ['vscode'] },

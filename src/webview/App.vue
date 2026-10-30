@@ -4,7 +4,7 @@ import { WIDELY_RECENT_DAYS } from '../shared/constants';
 import type { Cat } from '../shared/types';
 import FeatureSection from './FeatureSection.vue';
 import NewsList from './NewsList.vue';
-import { data, hasVisible, hiddenCount, loading, mark, marks, newsKey, refresh, unread, view } from './store';
+import { data, hasVisible, hiddenCount, loading, mark, marks, newsKey, newsList, refresh, unread, view } from './store';
 import type { Type } from './store';
 
 const types: { id: Type; label: string }[] = [
@@ -80,7 +80,7 @@ const readAllNews = () =>
           <span class="sub">{{ d.news.length }} Meldungen</span>
           <button type="button" class="lk" @click="readAllNews">Alle als gelesen markieren</button>
         </div>
-        <NewsList :news="d.news" />
+        <NewsList :news="newsList" />
         <p v-if="d.news.length && !hasVisible.news" class="none">
           Nichts anzuzeigen. Prüfe den Favoriten-Filter oder blende ausgeblendete Einträge ein.
         </p>
